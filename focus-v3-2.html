@@ -905,10 +905,10 @@ const api = (path, opts={}) => fetch(`${SUPA_URL}/rest/v1/${path}`, {
     'apikey': SUPA_KEY,
     'Authorization': `Bearer ${_token || SUPA_KEY}`,
     'Content-Type': 'application/json',
-    'Prefer': opts.prefer || 'return=minimal',
-    ...opts.headers
+    ...(opts.headers||{})
   },
-  ...opts
+  method: opts.method||'GET',
+  body: opts.body
 });
 
 const authApi = (path, body) => fetch(`${SUPA_URL}/auth/v1/${path}`, {
@@ -952,13 +952,13 @@ let checkinStep = 1;
 // Each collection stored as ONE row per user: { user_id, data: [...] }
 
 async function syncDown() {
-  if(!_userId) return;
+  if(!_userId || !_token) return;
   try {
     const [t, h, d, e] = await Promise.all([
-      api(`tasks?user_id=eq.${_userId}&select=data`, {headers:{'Prefer':''}}),
-      api(`habits?user_id=eq.${_userId}&select=data`, {headers:{'Prefer':''}}),
-      api(`diary?user_id=eq.${_userId}&select=data`, {headers:{'Prefer':''}}),
-      api(`energy?user_id=eq.${_userId}&select=data`, {headers:{'Prefer':''}})
+      api(`tasks?user_id=eq.${_userId}&select=data`),
+      api(`habits?user_id=eq.${_userId}&select=data`),
+      api(`diary?user_id=eq.${_userId}&select=data`),
+      api(`energy?user_id=eq.${_userId}&select=data`)
     ]);
     const tj = await t.json(); if(tj[0]) { tasks  = tj[0].data; lsave('fv3_tasks', tasks); }
     const hj = await h.json(); if(hj[0]) { habits = hj[0].data; lsave('fv3_habits', habits); }
@@ -968,14 +968,11 @@ async function syncDown() {
 }
 
 async function syncUp(table, value) {
-  if(!_userId) return;
+  if(!_userId || !_token) return;
   lsave(`fv3_${table}`, value);
   try {
-    await api(`${table}?user_id=eq.${_userId}`, {
-      method: 'DELETE',
-      headers: { 'Prefer': '' }
-    });
-    await api(table, {
+    const delRes = await api(`${table}?user_id=eq.${_userId}`, { method: 'DELETE' });
+    const insRes = await api(table, {
       method: 'POST',
       headers: { 'Prefer': 'return=minimal' },
       body: JSON.stringify({ user_id: _userId, data: value })
@@ -1025,6 +1022,7 @@ async function doLogin() {
   _userId = json.user?.id;
   lsave('sb_token', _token);
   lsave('sb_uid', _userId);
+  lsave('sb_refresh', json.refresh_token);
 
   showApp();
   initApp();
@@ -1068,11 +1066,33 @@ function initApp() {
   }
 }
 
+async function refreshToken() {
+  const rt = lload('sb_refresh', null);
+  if(!rt) { showAuthScreen(); return false; }
+  try {
+    const res = await authApi('token?grant_type=refresh_token', { refresh_token: rt });
+    const json = await res.json();
+    if(json.access_token) {
+      _token = json.access_token;
+      lsave('sb_token', _token);
+      lsave('sb_refresh', json.refresh_token);
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
 // ===== BOOTSTRAP =====
 if(_token && _userId) {
   showApp();
   initApp();
-  syncDown().then(()=>{ renderTasks(); renderHabits(); renderDiary(); });
+  syncDown().then(res => {
+    // if 401, try refresh
+  }).catch(()=>{});
+  refreshToken().then(ok => {
+    if(ok) syncDown().then(()=>{ renderTasks(); renderHabits(); renderDiary(); });
+    else { renderTasks(); renderHabits(); renderDiary(); }
+  });
 } else {
   showAuthScreen();
 }
