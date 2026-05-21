@@ -1953,7 +1953,6 @@ function addEnergyFromDiary() {
 }
 
 // ===== AI CHECKIN =====
-const ANTHROPIC_KEY = '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';
 let aiCheckinMessages = [];
 let aiCheckinData = { score: null, main: '', miss: '', grateful: '' };
 
@@ -2000,19 +1999,16 @@ function addAiMessage(role, text) {
   el.scrollTop = el.scrollHeight;
 }
 
+const PROXY_URL = 'https://lifeos-proxy.apolskiyov.workers.dev';
+
 async function callClaude(systemPrompt, messages) {
   document.getElementById('aiTyping').style.display = 'block';
   document.getElementById('aiCheckinSendBtn').disabled = true;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(PROXY_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-client-side-keys-allowed': 'true'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
