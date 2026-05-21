@@ -34,13 +34,21 @@ body {
   font-family: var(--font);
   min-height: 100dvh;
   overflow-x: hidden;
-  max-width: 480px;
+  max-width: 720px;
   margin: 0 auto;
 }
 #appRoot {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
+}
+
+@media (min-width: 600px) {
+  .content { padding: 16px 32px 100px; }
+  #todoList { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #todoList .done-divider { grid-column: 1 / -1; }
+  #todoList .empty { grid-column: 1 / -1; }
+  .nav { grid-template-columns: repeat(4, 1fr) !important; }
 }
 
 /* HEADER */
@@ -1408,14 +1416,16 @@ function renderTasks() {
     if(aOver !== bOver) return aOver ? -1 : 1;
     // 2. внутри просроченных — по дате (старейшие первые)
     if(aOver && bOver) return (a.date||'').localeCompare(b.date||'');
-    // 3. для остальных — сначала приоритет
-    const pd = (prioOrder[a.priority]||2) - (prioOrder[b.priority]||2);
-    if(pd !== 0) return pd;
-    // 4. внутри одного приоритета — по дате (сегодня → ближайшие → без даты)
+    // 3. сначала по дате (ближайшие первые, без даты в конце)
     const aDate = a.date || '9999-99-99';
     const bDate = b.date || '9999-99-99';
     if(aDate !== bDate) return aDate.localeCompare(bDate);
-    // 5. внутри одной даты — по времени дня
+    // 4. внутри одной даты — по приоритету
+    const prioOrder = {high:1, mid:2, low:3};
+    const pd = (prioOrder[a.priority]||2) - (prioOrder[b.priority]||2);
+    if(pd !== 0) return pd;
+    // 5. внутри одного приоритета — по времени дня
+    const todOrder = {am:0, pm:1, '':2};
     return (todOrder[a.tod||'']) - (todOrder[b.tod||'']);
   });
 
