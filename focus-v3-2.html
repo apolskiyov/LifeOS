@@ -650,6 +650,41 @@ body {
 /* REPEAT TAG */
 .tag.repeat { color: var(--accent2); background: rgba(224,108,244,.12); }
 
+/* AI CHAT MESSAGES */
+.ai-msg {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.ai-msg.user { flex-direction: row-reverse; }
+.ai-bubble {
+  max-width: 82%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.ai-msg.assistant .ai-bubble {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+  color: var(--text);
+}
+.ai-msg.user .ai-bubble {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+.ai-avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+}
+
 .toast {
   position:fixed; bottom:90px; left:50%;
   transform:translateX(-50%) translateY(10px);
@@ -881,61 +916,38 @@ body {
   </div>
 </div>
 
-<!-- CHECKIN MODAL -->
+<!-- AI CHECKIN MODAL -->
 <div class="checkin-overlay" id="checkinOverlay" onclick="closeCheckinOutside(event)">
-  <div class="checkin-modal">
+  <div class="checkin-modal" style="max-height:85dvh;display:flex;flex-direction:column;">
     <div class="modal-handle"></div>
-    <div class="checkin-progress" id="checkinProgress"></div>
-
-    <!-- Step 1: Score -->
-    <div class="checkin-step active" id="cs1">
-      <div class="checkin-q">Как оцениваешь <span>сегодняшний день</span>?</div>
-      <div class="score-row" id="scoreRow">
-        <div class="score-btn" onclick="setScore(1)">1</div>
-        <div class="score-btn" onclick="setScore(2)">2</div>
-        <div class="score-btn" onclick="setScore(3)">3</div>
-        <div class="score-btn" onclick="setScore(4)">4</div>
-        <div class="score-btn" onclick="setScore(5)">5</div>
-        <div class="score-btn" onclick="setScore(6)">6</div>
-        <div class="score-btn" onclick="setScore(7)">7</div>
-        <div class="score-btn" onclick="setScore(8)">8</div>
-        <div class="score-btn" onclick="setScore(9)">9</div>
-        <div class="score-btn" onclick="setScore(10)">10</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-family:var(--head);font-size:14px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent">
+        🌙 Вечерний чекин
       </div>
-      <div class="checkin-nav">
-        <button class="btn-next" onclick="checkinNext(1)">Далее →</button>
-      </div>
+      <button onclick="document.getElementById('checkinOverlay').classList.remove('open')"
+        style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1">×</button>
     </div>
 
-    <!-- Step 2: Main event -->
-    <div class="checkin-step" id="cs2">
-      <div class="checkin-q">Что было <span>главным сегодня</span>?</div>
-      <textarea class="checkin-input" id="ci-main" placeholder="Событие, задача, разговор..."></textarea>
-      <div class="checkin-nav">
-        <button class="btn-skip" onclick="checkinNext(2)">Пропустить</button>
-        <button class="btn-next" onclick="checkinNext(2)">Далее →</button>
-      </div>
+    <!-- Chat messages -->
+    <div id="aiCheckinMessages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-bottom:12px;min-height:200px;max-height:45dvh"></div>
+
+    <!-- Typing indicator -->
+    <div id="aiTyping" style="display:none;color:var(--muted);font-size:12px;padding:4px 0">Печатает...</div>
+
+    <!-- Input -->
+    <div style="display:flex;gap:8px;align-items:flex-end">
+      <textarea id="aiCheckinInput" class="checkin-input" placeholder="Напиши ответ..." rows="2"
+        style="flex:1;min-height:44px;max-height:120px;resize:none"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCheckinMessage()}"></textarea>
+      <button onclick="sendCheckinMessage()" id="aiCheckinSendBtn"
+        style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:white;font-size:18px;cursor:pointer;flex-shrink:0">↑</button>
     </div>
 
-    <!-- Step 3: What was missing -->
-    <div class="checkin-step" id="cs3">
-      <div class="checkin-q">Что <span>не успел</span> или отложил?</div>
-      <textarea class="checkin-input" id="ci-miss" placeholder="Задача, разговор, решение..."></textarea>
-      <div class="checkin-nav">
-        <button class="btn-skip" onclick="checkinNext(3)">Пропустить</button>
-        <button class="btn-next" onclick="checkinNext(3)">Далее →</button>
-      </div>
-    </div>
-
-    <!-- Step 4: Grateful -->
-    <div class="checkin-step" id="cs4">
-      <div class="checkin-q">За что <span>благодарен</span> сегодня?</div>
-      <textarea class="checkin-input" id="ci-grateful" placeholder="Человек, момент, мелочь..."></textarea>
-      <div class="checkin-nav">
-        <button class="btn-skip" onclick="saveCheckin()">Пропустить</button>
-        <button class="btn-next" onclick="saveCheckin()">Сохранить ✓</button>
-      </div>
-    </div>
+    <!-- Save button (appears at end) -->
+    <button id="aiCheckinSaveBtn" onclick="saveAiCheckin()"
+      style="display:none;width:100%;padding:14px;border-radius:var(--r2);background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:white;font-family:var(--head);font-size:13px;font-weight:600;cursor:pointer;margin-top:10px">
+      Сохранить день ✓
+    </button>
   </div>
 </div>
 
@@ -1282,11 +1294,9 @@ function spawnRepeatTask(t) {
   if(t.repeat === 'daily') base.setDate(base.getDate()+1);
   else if(t.repeat === 'weekly') base.setDate(base.getDate()+7);
   const nextDate = toLocalStr(base);
-  console.log('spawnRepeat:', t.name, 'repeat:', t.repeat, 'date:', t.date, 'nextDate:', nextDate);
   const exists = tasks.find(x=>x.name===t.name && x.date===nextDate && !x.done);
-  console.log('exists:', exists);
   if(exists) return null;
-  const newT = {
+  return {
     id: Date.now().toString() + Math.floor(Math.random()*99999),
     name: t.name, priority: t.priority,
     note: t.note, date: nextDate,
@@ -1294,8 +1304,6 @@ function spawnRepeatTask(t) {
     done: false, created: TODAY_STR,
     completedAt: null, postponed: false
   };
-  console.log('created new task:', newT);
-  return newT;
 }
 
 function toggleTask(id) {
@@ -1944,48 +1952,130 @@ function addEnergyFromDiary() {
   showToast('Выбери уровень энергии');
 }
 
-// ===== CHECKIN =====
+// ===== AI CHECKIN =====
+const ANTHROPIC_KEY = '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';
+let aiCheckinMessages = [];
+let aiCheckinData = { score: null, main: '', miss: '', grateful: '' };
+
 function openCheckin() {
-  checkinScore = 0; checkinStep = 1;
-  document.getElementById('ci-main').value='';
-  document.getElementById('ci-miss').value='';
-  document.getElementById('ci-grateful').value='';
-  document.querySelectorAll('.score-btn').forEach(b=>b.classList.remove('on'));
-  updateCheckinProgress();
-  document.querySelectorAll('.checkin-step').forEach((s,i)=>s.classList.toggle('active',i===0));
+  aiCheckinMessages = [];
+  aiCheckinData = { score: null, main: '', miss: '', grateful: '' };
+  document.getElementById('aiCheckinMessages').innerHTML = '';
+  document.getElementById('aiCheckinInput').value = '';
+  document.getElementById('aiCheckinSaveBtn').style.display = 'none';
   document.getElementById('checkinOverlay').classList.add('open');
+
+  // Build context from today's data
+  const todayDone = tasks.filter(t=>t.done && t.completedAt===TODAY_STR).length;
+  const todayHabits = habits.filter(h=>h.log[TODAY_STR]).map(h=>h.name).join(', ');
+  const energyLog = getTodayEnergyLog();
+  const avgE = energyLog.length ? (energyLog.reduce((a,b)=>a+b.val,0)/energyLog.length).toFixed(1) : null;
+
+  const context = `Сегодня пользователь выполнил ${todayDone} задач${todayHabits ? `, отметил привычки: ${todayHabits}` : ''}${avgE ? `, средняя энергия дня: ${avgE}/5` : ''}.`;
+
+  const systemPrompt = `Ты помощник для вечернего рефлексии в личном приложении LifeOS. 
+Твоя задача — провести короткий живой диалог (3-5 сообщений) чтобы помочь пользователю осмыслить день.
+${context}
+Задай вопросы про: оценку дня (1-10), главное событие, что не успел, за что благодарен.
+Будь кратким, тёплым, без лишних слов. Говори на русском. Не задавай все вопросы сразу.
+В конце, когда соберёшь всю информацию, напиши JSON блок в таком формате (и только тогда):
+<save>{"score":7,"main":"текст","miss":"текст","grateful":"текст"}</save>`;
+
+  aiCheckinMessages = [{ role: 'user', content: '__start__' }];
+
+  callClaude(systemPrompt, [{ role: 'user', content: 'Начни вечерний чекин' }]);
 }
 
-function updateCheckinProgress() {
-  const el = document.getElementById('checkinProgress');
-  el.innerHTML = [1,2,3,4].map(i=>
-    `<div class="cp-dot ${i<checkinStep?'done':''}"></div>`
-  ).join('');
+function addAiMessage(role, text) {
+  const el = document.getElementById('aiCheckinMessages');
+  const isUser = role === 'user';
+  const div = document.createElement('div');
+  div.className = `ai-msg ${role}`;
+  div.innerHTML = `
+    ${!isUser ? '<div class="ai-avatar">🤖</div>' : ''}
+    <div class="ai-bubble">${text.replace(/\n/g,'<br>')}</div>
+    ${isUser ? '<div class="ai-avatar">👤</div>' : ''}
+  `;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
 }
 
-function setScore(n) {
-  checkinScore = n;
-  document.querySelectorAll('.score-btn').forEach((b,i)=>b.classList.toggle('on',i+1===n));
+async function callClaude(systemPrompt, messages) {
+  document.getElementById('aiTyping').style.display = 'block';
+  document.getElementById('aiCheckinSendBtn').disabled = true;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-client-side-keys-allowed': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages
+      })
+    });
+
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'Что-то пошло не так, попробуй ещё раз.';
+
+    document.getElementById('aiTyping').style.display = 'none';
+    document.getElementById('aiCheckinSendBtn').disabled = false;
+
+    // Check for save block
+    const saveMatch = reply.match(/<save>(.*?)<\/save>/s);
+    if(saveMatch) {
+      try {
+        aiCheckinData = JSON.parse(saveMatch[1]);
+      } catch(e) {}
+      const cleanReply = reply.replace(/<save>.*?<\/save>/s, '').trim();
+      if(cleanReply) addAiMessage('assistant', cleanReply);
+      document.getElementById('aiCheckinSaveBtn').style.display = 'block';
+      document.getElementById('aiCheckinInput').disabled = true;
+      document.getElementById('aiCheckinSendBtn').disabled = true;
+    } else {
+      addAiMessage('assistant', reply);
+      aiCheckinMessages.push({ role: 'assistant', content: reply });
+    }
+  } catch(err) {
+    document.getElementById('aiTyping').style.display = 'none';
+    document.getElementById('aiCheckinSendBtn').disabled = false;
+    addAiMessage('assistant', 'Ошибка соединения. Проверь интернет и попробуй ещё раз.');
+  }
 }
 
-function checkinNext(step) {
-  if(step===1 && checkinScore===0) { showToast('Оцени день от 1 до 10'); return; }
-  checkinStep = step+1;
-  updateCheckinProgress();
-  document.querySelectorAll('.checkin-step').forEach((s,i)=>s.classList.toggle('active',i===step));
+async function sendCheckinMessage() {
+  const input = document.getElementById('aiCheckinInput');
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = '';
+
+  addAiMessage('user', text);
+  aiCheckinMessages.push({ role: 'user', content: text });
+
+  const systemPrompt = `Ты помощник для вечернего рефлексии в личном приложении LifeOS.
+Веди живой диалог, помогай осмыслить день. Задавай вопросы про: оценку дня (1-10), главное событие, что не успел, за что благодарен.
+Будь кратким, тёплым. Говори на русском. Не задавай все вопросы сразу — по одному.
+Когда соберёшь всю информацию (оценка + хотя бы 1-2 ответа), напиши финальный JSON:
+<save>{"score":7,"main":"текст","miss":"текст","grateful":"текст"}</save>`;
+
+  await callClaude(systemPrompt, aiCheckinMessages.filter(m=>m.role!=='user'||m.content!=='__start__'));
 }
 
-function saveCheckin() {
-  if(checkinScore===0) { showToast('Оцени день от 1 до 10'); return; }
+function saveAiCheckin() {
   const entry = {
     date: TODAY_STR,
-    score: checkinScore,
-    main: document.getElementById('ci-main').value.trim(),
-    miss: document.getElementById('ci-miss').value.trim(),
-    grateful: document.getElementById('ci-grateful').value.trim(),
+    score: aiCheckinData.score || 5,
+    main: aiCheckinData.main || '',
+    miss: aiCheckinData.miss || '',
+    grateful: aiCheckinData.grateful || '',
     energy: energy[TODAY_STR] || null
   };
-  // Replace if already exists today
   diary = diary.filter(d=>d.date!==TODAY_STR);
   diary.unshift(entry);
   save('fv3_diary', diary);
