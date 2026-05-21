@@ -1000,9 +1000,10 @@ let tasks  = lload('fv3_tasks',[]);
 let habits = lload('fv3_habits',[]);
 let diary  = lload('fv3_diary',[]);
 let energy = lload('fv3_energy',{});
+let curFilter = 'all';
+let curPrio = 'mid';
+let curTod = '';
 let curRepeat = 'none';
-
-function setRepeat(v) {
   curRepeat = v;
   ['none','daily','weekly'].forEach(r => {
     const el = document.getElementById('rep-'+r);
@@ -1012,8 +1013,7 @@ function setRepeat(v) {
 }
 
 function updateRepeatUI() { setRepeat(curRepeat); }
-let curPrio = 'mid';
-let curTod = '';
+
 let hFreq = 1;
 let hDays = [];
 let hEditId = null;
