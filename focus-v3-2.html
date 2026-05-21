@@ -1004,6 +1004,8 @@ let curFilter = 'all';
 let curPrio = 'mid';
 let curTod = '';
 let curRepeat = 'none';
+
+function setRepeat(v) {
   curRepeat = v;
   ['none','daily','weekly'].forEach(r => {
     const el = document.getElementById('rep-'+r);
