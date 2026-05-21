@@ -900,16 +900,19 @@ body {
 const SUPA_URL = 'https://nnovzokqyeuqclaacofl.supabase.co';
 const SUPA_KEY = 'sb_publishable__KJs8LTGNG4OLxopJ1RS2w_toOb4c_9';
 
-const api = (path, opts={}) => fetch(`${SUPA_URL}/rest/v1/${path}`, {
-  headers: {
-    'apikey': SUPA_KEY,
-    'Authorization': `Bearer ${_token || SUPA_KEY}`,
-    'Content-Type': 'application/json',
-    ...(opts.headers||{})
-  },
-  method: opts.method||'GET',
-  body: opts.body
-});
+const api = (path, opts={}) => {
+  const token = lload('sb_token', null);
+  return fetch(`${SUPA_URL}/rest/v1/${path}`, {
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': `Bearer ${token || SUPA_KEY}`,
+      'Content-Type': 'application/json',
+      ...(opts.headers||{})
+    },
+    method: opts.method||'GET',
+    body: opts.body
+  });
+};
 
 const authApi = (path, body) => fetch(`${SUPA_URL}/auth/v1/${path}`, {
   method: 'POST',
