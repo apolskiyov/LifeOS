@@ -1277,32 +1277,32 @@ function saveTask() {
 }
 
 function spawnRepeatTask(t) {
-  // Called when a repeating task is completed — create next occurrence
-  if(!t.repeat || t.repeat === 'none') return;
-  const base = new Date(t.date+'T00:00:00');
+  if(!t.repeat || t.repeat === 'none') return null;
+  const base = new Date((t.date || TODAY_STR)+'T00:00:00');
   if(t.repeat === 'daily') base.setDate(base.getDate()+1);
   else if(t.repeat === 'weekly') base.setDate(base.getDate()+7);
   const nextDate = toLocalStr(base);
-  // Don't duplicate if already exists
   const exists = tasks.find(x=>x.name===t.name && x.date===nextDate && !x.done);
-  if(exists) return;
-  tasks.push({
-    id: Date.now().toString()+Math.random(),
+  if(exists) return null;
+  return {
+    id: Date.now().toString() + Math.floor(Math.random()*99999),
     name: t.name, priority: t.priority,
     note: t.note, date: nextDate,
     tod: t.tod, repeat: t.repeat,
     done: false, created: TODAY_STR,
     completedAt: null, postponed: false
-  });
+  };
 }
 
 function toggleTask(id) {
+  let newTask = null;
   tasks = tasks.map(t => {
     if(t.id!==id) return t;
     const done = !t.done;
-    if(done) spawnRepeatTask(t);
+    if(done) newTask = spawnRepeatTask(t);
     return {...t, done, completedAt: done ? TODAY_STR : null};
   });
+  if(newTask) tasks.push(newTask);
   save('fv3_tasks', tasks);
   renderTasks();
 }
