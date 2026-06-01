@@ -4,8 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LifeOS">
 <meta name="theme-color" content="#0f0f13">
 <title>LifeOS</title>
+<link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;LifeOS&quot;,&quot;short_name&quot;:&quot;LifeOS&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;%230f0f13&quot;,&quot;theme_color&quot;:&quot;%230f0f13&quot;}">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='120' fill='%230f0f13'/%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237c6ef7'/%3E%3Cstop offset='1' stop-color='%23e06cf4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='256' cy='200' r='80' fill='url(%23g)'/%3E%3Crect x='176' y='300' width='160' height='24' rx='12' fill='url(%23g)'/%3E%3Crect x='196' y='340' width='120' height='24' rx='12' fill='url(%23g)' opacity='.6'/%3E%3Crect x='216' y='380' width='80' height='24' rx='12' fill='url(%23g)' opacity='.3'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600;700&family=Onest:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -658,6 +663,62 @@ body {
 /* REPEAT TAG */
 .tag.repeat { color: var(--accent2); background: rgba(224,108,244,.12); }
 
+/* CHALLENGES */
+.challenge-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  margin-bottom: 10px;
+}
+.challenge-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.challenge-name {
+  font-weight: 600;
+  font-size: 15px;
+}
+.challenge-status {
+  font-size: 12px;
+  color: var(--muted);
+}
+.challenge-bar-wrap {
+  background: var(--bg3);
+  border-radius: 6px;
+  height: 8px;
+  margin: 10px 0;
+  overflow: hidden;
+}
+.challenge-bar {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width .3s;
+}
+.challenge-days {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.ch-day {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: var(--bg3);
+  transition: all .15s;
+}
+.ch-day.success { background: rgba(82,224,160,.15); border-color: var(--success); }
+.ch-day.fail { background: rgba(240,90,126,.1); border-color: var(--danger); }
+.ch-day.future { opacity: .3; cursor: default; }
+.ch-day.today { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(124,110,247,.3); }
+
 /* AI CHAT MESSAGES */
 .ai-msg {
   display: flex;
@@ -738,12 +799,15 @@ body {
       <button onclick="doLogout()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px;line-height:1" title="Выйти">⏏</button>
     </div>
   </div>
-  <nav class="nav" style="grid-template-columns:repeat(4,1fr)">
+  <nav class="nav" style="grid-template-columns:repeat(5,1fr)">
     <button class="nav-btn active" onclick="showView('todo',this)">
       <span class="icon">✅</span>Задачи
     </button>
     <button class="nav-btn" onclick="showView('habits',this)">
       <span class="icon">🔥</span>Привычки
+    </button>
+    <button class="nav-btn" onclick="showView('challenges',this)">
+      <span class="icon">🎯</span>Челленджи
     </button>
     <button class="nav-btn" onclick="showView('diary',this)">
       <span class="icon">📓</span>Дневник
@@ -776,6 +840,11 @@ body {
       <div class="section-title">Мои задачи</div>
       <button class="btn-add" onclick="openTaskModal()">+</button>
     </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="filter-btn active" id="catf-all" onclick="setCatFilter('all',this)">Все</button>
+      <button class="filter-btn" id="catf-work" onclick="setCatFilter('work',this)">💼 Работа</button>
+      <button class="filter-btn" id="catf-personal" onclick="setCatFilter('personal',this)">🏠 Личное</button>
+    </div>
     <div class="filters">
       <button class="filter-btn active" onclick="setFilter('all',this)">Все</button>
       <button class="filter-btn" onclick="setFilter('today',this)">Сегодня</button>
@@ -783,6 +852,15 @@ body {
       <button class="filter-btn" onclick="setFilter('done',this)">Выполненные</button>
     </div>
     <div id="todoList"></div>
+  </div>
+
+  <!-- CHALLENGES -->
+  <div class="view" id="view-challenges">
+    <div class="section-head">
+      <div class="section-title">🎯 Челленджи</div>
+      <button class="btn-add" onclick="openChallengeModal()">+</button>
+    </div>
+    <div id="challengeList"></div>
   </div>
 
   <!-- HABITS -->
@@ -851,6 +929,13 @@ body {
         <div class="priority-opt" id="po-low" onclick="setPrio('low')">🟢 Низкий</div>
       </div>
     </div>
+    <div class="field">
+      <label>Категория</label>
+      <div class="priority-row">
+        <div class="priority-opt" id="cat-work" onclick="setCategory('work')">💼 Работа</div>
+        <div class="priority-opt sel-mid" id="cat-personal" onclick="setCategory('personal')">🏠 Личное</div>
+      </div>
+    </div>
     <input type="hidden" id="tEditId">
     <div class="field">
       <label>Повтор</label>
@@ -861,6 +946,41 @@ body {
       </div>
     </div>
     <button class="btn-primary" onclick="saveTask()">Сохранить</button>
+  </div>
+</div>
+
+<!-- CHALLENGE MODAL -->
+<div class="modal-overlay" id="challengeModal" onclick="closeModal(event,'challengeModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Новый челлендж</div>
+    <div class="field">
+      <label>Название</label>
+      <input type="text" id="chName" placeholder="Без сладкого, 2л воды..." maxlength="60">
+    </div>
+    <div class="field">
+      <label>Успешных дней (цель)</label>
+      <div class="freq-row" id="chSuccessRow">
+        <div class="freq-btn" onclick="setChSuccess(3)">3</div>
+        <div class="freq-btn" onclick="setChSuccess(5)">5</div>
+        <div class="freq-btn sel" onclick="setChSuccess(7)">7</div>
+        <div class="freq-btn" onclick="setChSuccess(14)">14</div>
+        <div class="freq-btn" onclick="setChSuccess(21)">21</div>
+        <div class="freq-btn" onclick="setChSuccess(30)">30</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Дедлайн (дней на всё)</label>
+      <div class="freq-row" id="chDeadlineRow">
+        <div class="freq-btn" onclick="setChDeadline(7)">7</div>
+        <div class="freq-btn sel" onclick="setChDeadline(14)">14</div>
+        <div class="freq-btn" onclick="setChDeadline(21)">21</div>
+        <div class="freq-btn" onclick="setChDeadline(30)">30</div>
+        <div class="freq-btn" onclick="setChDeadline(60)">60</div>
+      </div>
+    </div>
+    <input type="hidden" id="chEditId">
+    <button class="btn-primary" onclick="saveChallenge()">Сохранить</button>
   </div>
 </div>
 
@@ -1021,6 +1141,7 @@ let habits = lload('fv3_habits',[]);
 let diary  = lload('fv3_diary',[]);
 let energy = lload('fv3_energy',{});
 let curFilter = 'all';
+let curCategory = 'all';
 let curPrio = 'mid';
 let curTod = '';
 let curRepeat = 'none';
@@ -1036,11 +1157,146 @@ function setRepeat(v) {
 
 function updateRepeatUI() { setRepeat(curRepeat); }
 
+let curCat = 'personal';
+
+function setCategory(v) {
+  curCat = v;
+  ['work','personal'].forEach(c => {
+    const el = document.getElementById('cat-'+c);
+    if(!el) return;
+    el.className = 'priority-opt' + (curCat===c ? ' sel-mid' : '');
+  });
+}
+
+function setCatFilter(v, btn) {
+  curCategory = v;
+  document.querySelectorAll('[id^="catf-"]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTasks();
+}
+
 let hFreq = 1;
 let hDays = [];
 let hEditId = null;
 let checkinScore = 0;
 let checkinStep = 1;
+
+let challenges = lload('fv3_challenges', []);
+let chSuccess = 7;
+let chDeadline = 14;
+
+function setChSuccess(v) {
+  chSuccess = v;
+  document.querySelectorAll('#chSuccessRow .freq-btn').forEach(b => {
+    b.className = 'freq-btn' + (parseInt(b.textContent)===v ? ' sel' : '');
+  });
+}
+function setChDeadline(v) {
+  chDeadline = v;
+  document.querySelectorAll('#chDeadlineRow .freq-btn').forEach(b => {
+    b.className = 'freq-btn' + (parseInt(b.textContent)===v ? ' sel' : '');
+  });
+}
+
+function openChallengeModal() {
+  chSuccess = 7; chDeadline = 14;
+  document.getElementById('chName').value = '';
+  document.getElementById('chEditId').value = '';
+  setChSuccess(7); setChDeadline(14);
+  document.getElementById('challengeModal').classList.add('open');
+}
+
+function saveChallenge() {
+  const name = document.getElementById('chName').value.trim();
+  if(!name) { showToast('Введи название'); return; }
+  const id = document.getElementById('chEditId').value || Date.now().toString();
+  const existing = challenges.find(c=>c.id===id);
+  const ch = existing || {
+    id, name,
+    successTarget: chSuccess,
+    deadlineDays: chDeadline,
+    startDate: TODAY_STR,
+    log: {} // dateStr -> 'success' | 'fail'
+  };
+  if(!existing) challenges.push(ch);
+  else { ch.successTarget = chSuccess; ch.deadlineDays = chDeadline; ch.name = name; }
+  save('fv3_challenges', challenges);
+  document.getElementById('challengeModal').classList.remove('open');
+  renderChallenges();
+  showToast('Челлендж создан!');
+}
+
+function markChallengeDay(id, dateStr, val) {
+  const ch = challenges.find(c=>c.id===id);
+  if(!ch) return;
+  if(ch.log[dateStr] === val) delete ch.log[dateStr];
+  else ch.log[dateStr] = val;
+  save('fv3_challenges', challenges);
+  renderChallenges();
+}
+
+function deleteChallenge(id) {
+  challenges = challenges.filter(c=>c.id!==id);
+  save('fv3_challenges', challenges);
+  renderChallenges();
+}
+
+function renderChallenges() {
+  const el = document.getElementById('challengeList');
+  if(!el) return;
+  if(!challenges.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🎯</div><div class="empty-text">Создай первый челлендж</div></div>`;
+    return;
+  }
+
+  el.innerHTML = challenges.map(ch => {
+    const start = new Date(ch.startDate+'T00:00:00');
+    const end = new Date(start); end.setDate(end.getDate() + ch.deadlineDays);
+    const endStr = toLocalStr(end);
+    const successCount = Object.values(ch.log).filter(v=>v==='success').length;
+    const pct = Math.min(100, Math.round(successCount / ch.successTarget * 100));
+    const daysLeft = Math.max(0, Math.ceil((end - TODAY) / 86400000));
+    const done = successCount >= ch.successTarget;
+    const failed = !done && TODAY > end;
+
+    // Build day dots
+    let days = '';
+    for(let i=0; i<ch.deadlineDays; i++) {
+      const d = new Date(start); d.setDate(d.getDate()+i);
+      const ds = toLocalStr(d);
+      const isFuture = ds > TODAY_STR;
+      const isToday = ds === TODAY_STR;
+      const val = ch.log[ds];
+      let cls = 'ch-day';
+      let icon = '·';
+      if(isFuture) { cls += ' future'; icon = '·'; }
+      else if(val==='success') { cls += ' success'; icon = '✓'; }
+      else if(val==='fail') { cls += ' fail'; icon = '✗'; }
+      if(isToday) cls += ' today';
+      const click = isFuture ? '' : `onclick="markChallengeDay('${ch.id}','${ds}','${val==='success'?'fail':'success'}')"`;
+      days += `<div class="${cls}" title="${ds}" ${click}>${icon}</div>`;
+    }
+
+    const statusText = done ? '✅ Выполнен!' : failed ? '❌ Не выполнен' : `Осталось ${daysLeft} дн.`;
+
+    return `
+    <div class="challenge-card">
+      <div class="challenge-header">
+        <div class="challenge-name">${ch.name}</div>
+        <button onclick="deleteChallenge('${ch.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">🗑️</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)">
+        <span>${successCount}/${ch.successTarget} успешных дней</span>
+        <span>${statusText}</span>
+      </div>
+      <div class="challenge-bar-wrap">
+        <div class="challenge-bar" style="width:${pct}%"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Нажми на день: ✓ успех / ✗ срыв (повторно — снять)</div>
+      <div class="challenge-days">${days}</div>
+    </div>`;
+  }).join('');
+}
 
 // ===== SYNC =====
 // Each collection stored as ONE row per user: { user_id, data: [...] }
@@ -1048,16 +1304,18 @@ let checkinStep = 1;
 async function syncDown() {
   if(!_userId || !_token) return;
   try {
-    const [t, h, d, e] = await Promise.all([
+    const [t, h, d, e, ch] = await Promise.all([
       api(`tasks?user_id=eq.${_userId}&select=data`),
       api(`habits?user_id=eq.${_userId}&select=data`),
       api(`diary?user_id=eq.${_userId}&select=data`),
-      api(`energy?user_id=eq.${_userId}&select=data`)
+      api(`energy?user_id=eq.${_userId}&select=data`),
+      api(`challenges?user_id=eq.${_userId}&select=data`)
     ]);
     const tj = await t.json(); if(tj[0]) { tasks  = tj[0].data; lsave('fv3_tasks', tasks); }
     const hj = await h.json(); if(hj[0]) { habits = hj[0].data; lsave('fv3_habits', habits); }
     const dj = await d.json(); if(dj[0]) { diary  = dj[0].data; lsave('fv3_diary', diary); }
     const ej = await e.json(); if(ej[0]) { energy = ej[0].data; lsave('fv3_energy', energy); }
+    const chj = await ch.json(); if(chj[0]) { challenges = chj[0].data; lsave('fv3_challenges', challenges); }
   } catch(err) { console.warn('syncDown error', err); }
 }
 
@@ -1077,7 +1335,7 @@ async function syncUp(table, value) {
 // Wrap save so it always syncs
 function save(k, v) {
   lsave(k, v);
-  const map = { fv3_tasks:'tasks', fv3_habits:'habits', fv3_diary:'diary', fv3_energy:'energy' };
+  const map = { fv3_tasks:'tasks', fv3_habits:'habits', fv3_diary:'diary', fv3_energy:'energy', fv3_challenges:'challenges' };
   if(map[k]) syncUp(map[k], v);
 }
 
@@ -1121,7 +1379,7 @@ async function doLogin() {
   showApp();
   initApp();
   await syncDown();
-  renderTasks(); renderHabits(); renderDiary(); renderStats();
+  renderTasks(); renderHabits(); renderDiary(); renderStats(); renderChallenges();
 }
 
 function toggleAuthMode() {
@@ -1184,8 +1442,8 @@ if(_token && _userId) {
     // if 401, try refresh
   }).catch(()=>{});
   refreshToken().then(ok => {
-    if(ok) syncDown().then(()=>{ renderTasks(); renderHabits(); renderDiary(); });
-    else { renderTasks(); renderHabits(); renderDiary(); }
+    if(ok) syncDown().then(()=>{ renderTasks(); renderHabits(); renderDiary(); renderChallenges(); });
+    else { renderTasks(); renderHabits(); renderDiary(); renderChallenges(); }
   });
 } else {
   showAuthScreen();
@@ -1200,6 +1458,7 @@ function showView(name, btn) {
   if(name==='habits') renderHabits();
   if(name==='todo') renderTasks();
   if(name==='diary') renderDiary();
+  if(name==='challenges') renderChallenges();
 }
 
 // ===== WEEK HELPERS (Mon-first) =====
@@ -1225,7 +1484,7 @@ function getWeekDates(refDate) {
 
 // ===== TASKS =====
 function openTaskModal(id) {
-  curPrio = 'mid'; curTod = ''; curRepeat = 'none';
+  curPrio = 'mid'; curTod = ''; curRepeat = 'none'; curCat = 'personal';
   document.getElementById('tName').value = '';
   document.getElementById('tNote').value = '';
   document.getElementById('tDate').value = TODAY_STR;
@@ -1242,11 +1501,13 @@ function openTaskModal(id) {
       curPrio = t.priority||'mid';
       curTod = t.tod||'';
       curRepeat = t.repeat||'none';
+      curCat = t.category||'personal';
     }
   }
   updatePrioUI();
   updateTodUI();
   updateRepeatUI();
+  setCategory(curCat);
   document.getElementById('taskModal').classList.add('open');
   setTimeout(()=>document.getElementById('tName').focus(),320);
 }
@@ -1283,6 +1544,7 @@ function saveTask() {
     date: document.getElementById('tDate').value,
     tod: curTod,
     repeat: curRepeat,
+    category: curCat,
     done: old ? old.done : false,
     created: old ? old.created : TODAY_STR,
     completedAt: old ? old.completedAt : null,
@@ -1370,6 +1632,11 @@ function renderTasks() {
   renderMorningBriefing();
   let list = [...tasks];
 
+  // Apply category filter
+  if(curCategory !== 'all') {
+    list = list.filter(t => (t.category||'personal') === curCategory);
+  }
+
   if(curFilter==='done') {
     // only done tasks, sorted by completedAt desc
     list = list.filter(t=>t.done).sort((a,b)=>(b.completedAt||'').localeCompare(a.completedAt||''));
@@ -1456,6 +1723,7 @@ function renderTasks() {
             ${getDateTag(t.date)}
             ${t.tod ? `<span class="tag">${todLabel[t.tod]}</span>` : ''}
             ${t.repeat && t.repeat!=='none' ? `<span class="tag repeat">${t.repeat==='daily'?'↻ Каждый день':'↻ Каждую неделю'}</span>` : ''}
+            ${t.category==='work' ? `<span class="tag" style="color:#7c6ef7;background:rgba(124,110,247,.12)">💼</span>` : ''}
           </div>
           <div class="task-actions">
             <button class="btn-sm" onclick="openTaskModal('${t.id}')">✏️ Изменить</button>
@@ -1987,7 +2255,8 @@ function openCheckin() {
 ${context}
 Задай вопросы про: оценку дня (1-10), главное событие, что не успел, за что благодарен.
 Будь кратким, тёплым, без лишних слов. Говори на русском. Не задавай все вопросы сразу.
-В конце, когда соберёшь всю информацию, напиши JSON блок в таком формате (и только тогда):
+Когда соберёшь всю информацию, напиши тёплое завершение — 1-2 предложения итога дня.
+Затем на отдельной строке добавь JSON для сохранения (без пояснений):
 <save>{"score":7,"main":"текст","miss":"текст","grateful":"текст"}</save>`;
 
   aiCheckinMessages = [{ role: 'user', content: '__start__' }];
@@ -2067,27 +2336,39 @@ async function sendCheckinMessage() {
   const systemPrompt = `Ты помощник для вечернего рефлексии в личном приложении LifeOS.
 Веди живой диалог, помогай осмыслить день. Задавай вопросы про: оценку дня (1-10), главное событие, что не успел, за что благодарен.
 Будь кратким, тёплым. Говори на русском. Не задавай все вопросы сразу — по одному.
-Когда соберёшь всю информацию (оценка + хотя бы 1-2 ответа), напиши финальный JSON:
+Когда соберёшь всю информацию (оценка + хотя бы 1-2 ответа), напиши тёплое завершение 1-2 предложения.
+Затем на отдельной строке добавь JSON (без пояснений):
 <save>{"score":7,"main":"текст","miss":"текст","grateful":"текст"}</save>`;
 
   await callClaude(systemPrompt, aiCheckinMessages.filter(m=>m.role!=='user'||m.content!=='__start__'));
 }
 
 function saveAiCheckin() {
+  const checkinDate = getCheckinDate();
   const entry = {
-    date: TODAY_STR,
+    date: checkinDate,
     score: aiCheckinData.score || 5,
     main: aiCheckinData.main || '',
     miss: aiCheckinData.miss || '',
     grateful: aiCheckinData.grateful || '',
-    energy: energy[TODAY_STR] || null
+    energy: energy[checkinDate] || null
   };
-  diary = diary.filter(d=>d.date!==TODAY_STR);
+  diary = diary.filter(d=>d.date!==checkinDate);
   diary.unshift(entry);
   save('fv3_diary', diary);
   document.getElementById('checkinOverlay').classList.remove('open');
   renderDiary();
   showToast('День сохранён ✓');
+}
+
+function getCheckinDate() {
+  const now = new Date();
+  if(now.getHours() < 3) {
+    const prev = new Date(now);
+    prev.setDate(prev.getDate() - 1);
+    return toLocalStr(prev);
+  }
+  return TODAY_STR;
 }
 
 function closeCheckinOutside(e) {
