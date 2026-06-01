@@ -433,6 +433,24 @@ body {
 
 /* FREQ SELECTOR */
 .freq-row { display:flex; gap:6px; flex-wrap:wrap; }
+.freq-btn {
+  padding: 8px 14px;
+  border-radius: var(--r2);
+  background: var(--bg3);
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.freq-btn:hover { border-color: var(--accent); color: var(--text); }
+.freq-btn.sel {
+  background: rgba(124,110,247,.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .freq-opt {
   padding:8px 14px; border-radius:20px;
   border:1.5px solid var(--border);
@@ -932,8 +950,8 @@ body {
       <label>Приоритет</label>
       <div class="priority-row">
         <div class="priority-opt" id="po-high" onclick="setPrio('high')">🔴 Высокий</div>
-        <div class="priority-opt sel-mid" id="po-mid" onclick="setPrio('mid')">🟡 Средний</div>
-        <div class="priority-opt" id="po-low" onclick="setPrio('low')">🟢 Низкий</div>
+        <div class="priority-opt" id="po-mid" onclick="setPrio('mid')">🟡 Средний</div>
+        <div class="priority-opt sel-mid" id="po-low" onclick="setPrio('low')">🟢 Низкий</div>
       </div>
     </div>
     <input type="hidden" id="tEditId">
@@ -1503,7 +1521,7 @@ function getWeekDates(refDate) {
 
 // ===== TASKS =====
 function openTaskModal(id) {
-  curPrio = 'mid'; curTod = ''; curRepeat = 'none'; curCat = 'work';
+  curPrio = 'low'; curTod = ''; curRepeat = 'none'; curCat = 'work';
   document.getElementById('tName').value = '';
   document.getElementById('tNote').value = '';
   document.getElementById('tDate').value = TODAY_STR;
