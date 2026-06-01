@@ -903,6 +903,13 @@ body {
     <div class="modal-handle"></div>
     <div class="modal-title" id="taskModalTitle">Новая задача</div>
     <div class="field">
+      <label>Категория</label>
+      <div class="priority-row">
+        <div class="priority-opt sel-mid" id="cat-work" onclick="setCategory('work')">💼 Работа</div>
+        <div class="priority-opt" id="cat-personal" onclick="setCategory('personal')">🏠 Личное</div>
+      </div>
+    </div>
+    <div class="field">
       <label>Название</label>
       <input type="text" id="tName" placeholder="Что нужно сделать?" maxlength="100">
     </div>
@@ -927,13 +934,6 @@ body {
         <div class="priority-opt" id="po-high" onclick="setPrio('high')">🔴 Высокий</div>
         <div class="priority-opt sel-mid" id="po-mid" onclick="setPrio('mid')">🟡 Средний</div>
         <div class="priority-opt" id="po-low" onclick="setPrio('low')">🟢 Низкий</div>
-      </div>
-    </div>
-    <div class="field">
-      <label>Категория</label>
-      <div class="priority-row">
-        <div class="priority-opt" id="cat-work" onclick="setCategory('work')">💼 Работа</div>
-        <div class="priority-opt sel-mid" id="cat-personal" onclick="setCategory('personal')">🏠 Личное</div>
       </div>
     </div>
     <input type="hidden" id="tEditId">
@@ -1157,7 +1157,7 @@ function setRepeat(v) {
 
 function updateRepeatUI() { setRepeat(curRepeat); }
 
-let curCat = 'personal';
+let curCat = 'work';
 
 function setCategory(v) {
   curCat = v;
@@ -1190,8 +1190,26 @@ function setChSuccess(v) {
   document.querySelectorAll('#chSuccessRow .freq-btn').forEach(b => {
     b.className = 'freq-btn' + (parseInt(b.textContent)===v ? ' sel' : '');
   });
+  // Дедлайн не может быть меньше цели
+  if(chDeadline < chSuccess) {
+    chDeadline = chSuccess;
+    document.querySelectorAll('#chDeadlineRow .freq-btn').forEach(b => {
+      const bv = parseInt(b.textContent);
+      b.className = 'freq-btn' + (bv===chDeadline ? ' sel' : '');
+      b.style.opacity = bv < chSuccess ? '0.3' : '1';
+      b.style.pointerEvents = bv < chSuccess ? 'none' : 'auto';
+    });
+  } else {
+    document.querySelectorAll('#chDeadlineRow .freq-btn').forEach(b => {
+      const bv = parseInt(b.textContent);
+      b.style.opacity = bv < chSuccess ? '0.3' : '1';
+      b.style.pointerEvents = bv < chSuccess ? 'none' : 'auto';
+    });
+  }
 }
+
 function setChDeadline(v) {
+  if(v < chSuccess) { showToast(`Дедлайн не может быть меньше цели (${chSuccess} дн.)`); return; }
   chDeadline = v;
   document.querySelectorAll('#chDeadlineRow .freq-btn').forEach(b => {
     b.className = 'freq-btn' + (parseInt(b.textContent)===v ? ' sel' : '');
@@ -1202,8 +1220,9 @@ function openChallengeModal() {
   chSuccess = 7; chDeadline = 14;
   document.getElementById('chName').value = '';
   document.getElementById('chEditId').value = '';
-  setChSuccess(7); setChDeadline(14);
   document.getElementById('challengeModal').classList.add('open');
+  // Подсветить дефолтные значения
+  setTimeout(() => { setChSuccess(7); setChDeadline(14); }, 50);
 }
 
 function saveChallenge() {
@@ -1484,7 +1503,7 @@ function getWeekDates(refDate) {
 
 // ===== TASKS =====
 function openTaskModal(id) {
-  curPrio = 'mid'; curTod = ''; curRepeat = 'none'; curCat = 'personal';
+  curPrio = 'mid'; curTod = ''; curRepeat = 'none'; curCat = 'work';
   document.getElementById('tName').value = '';
   document.getElementById('tNote').value = '';
   document.getElementById('tDate').value = TODAY_STR;
@@ -1590,13 +1609,13 @@ function toggleTask(id) {
 }
 
 function postponeTask(id) {
-  // Postpone only to TOMORROW, only once
   const t = tasks.find(x=>x.id===id);
-  if(!t || t.postponed) return;
-  const tomorrow = new Date(TODAY);
-  tomorrow.setDate(tomorrow.getDate()+1);
+  if(!t) return;
+  const base = new Date((t.date && t.date >= TODAY_STR ? t.date : TODAY_STR)+'T00:00:00');
+  base.setDate(base.getDate()+1);
+  const nextDate = toLocalStr(base);
   tasks = tasks.map(x => x.id===id
-    ? {...x, date: tomorrow.toISOString().split('T')[0], postponed: true}
+    ? {...x, date: nextDate, postponed: true}
     : x);
   save('fv3_tasks', tasks);
   renderTasks();
@@ -1709,9 +1728,7 @@ function renderTasks() {
 
   function taskHtml(t) {
     const isOverdue = t.date && t.date < TODAY_STR;
-    const postponeBtn = t.postponed
-      ? `<button class="btn-sm postponed" disabled>📅 Перенесено</button>`
-      : (t.date ? `<button class="btn-sm" onclick="postponeTask('${t.id}')">📅 На завтра</button>` : '');
+    const postponeBtn = t.date ? `<button class="btn-sm" onclick="postponeTask('${t.id}')">📅 На завтра</button>` : '';
     return `
     <div class="card priority-${t.priority||'mid'}">
       <div class="task-row">
