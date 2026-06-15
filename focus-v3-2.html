@@ -1376,6 +1376,14 @@ function renderChallenges() {
 
 // ===== SYNC =====
 // Each collection stored as ONE row per user: { user_id, data: [...] }
+// dirty flag = local has unsaved changes → syncDown must not overwrite
+
+const TABLES = ['tasks','habits','diary','energy','challenges'];
+const TABLE_MAP = { fv3_tasks:'tasks', fv3_habits:'habits', fv3_diary:'diary', fv3_energy:'energy', fv3_challenges:'challenges' };
+
+function markDirty(table)  { lsave(`fv3_${table}_dirty`, true); }
+function markClean(table)  { lsave(`fv3_${table}_dirty`, false); }
+function isDirty(table)    { return lload(`fv3_${table}_dirty`, false); }
 
 async function syncDown() {
   if(!_userId || !_token) return;
@@ -1387,32 +1395,62 @@ async function syncDown() {
       api(`energy?user_id=eq.${_userId}&select=data`),
       api(`challenges?user_id=eq.${_userId}&select=data`)
     ]);
-    const tj = await t.json(); if(tj[0]) { tasks  = tj[0].data; lsave('fv3_tasks', tasks); }
-    const hj = await h.json(); if(hj[0]) { habits = hj[0].data; lsave('fv3_habits', habits); }
-    const dj = await d.json(); if(dj[0]) { diary  = dj[0].data; lsave('fv3_diary', diary); }
-    const ej = await e.json(); if(ej[0]) { energy = ej[0].data; lsave('fv3_energy', energy); }
-    const chj = await ch.json(); if(chj[0]) { challenges = chj[0].data; lsave('fv3_challenges', challenges); }
+
+    const apply = (json, table, varRef, lsKey) => {
+      if(!json[0]) return;
+      if(isDirty(table)) {
+        // Local has unsaved changes — push them up instead of overwriting
+        syncUp(table, varRef());
+      } else {
+        const fresh = json[0].data;
+        eval(`${varRef.name} = fresh`);
+        lsave(lsKey, fresh);
+      }
+    };
+
+    const tj = await t.json();
+    const hj = await h.json();
+    const dj = await d.json();
+    const ej = await e.json();
+    const chj = await ch.json();
+
+    if(tj[0]  && !isDirty('tasks'))      { tasks      = tj[0].data;  lsave('fv3_tasks', tasks); }
+    else if(tj[0]  && isDirty('tasks'))  syncUp('tasks', tasks);
+
+    if(hj[0]  && !isDirty('habits'))     { habits     = hj[0].data;  lsave('fv3_habits', habits); }
+    else if(hj[0]  && isDirty('habits')) syncUp('habits', habits);
+
+    if(dj[0]  && !isDirty('diary'))      { diary      = dj[0].data;  lsave('fv3_diary', diary); }
+    else if(dj[0]  && isDirty('diary'))  syncUp('diary', diary);
+
+    if(ej[0]  && !isDirty('energy'))     { energy     = ej[0].data;  lsave('fv3_energy', energy); }
+    else if(ej[0]  && isDirty('energy')) syncUp('energy', energy);
+
+    if(chj[0] && !isDirty('challenges'))     { challenges = chj[0].data; lsave('fv3_challenges', challenges); }
+    else if(chj[0] && isDirty('challenges')) syncUp('challenges', challenges);
+
   } catch(err) { console.warn('syncDown error', err); }
 }
 
 async function syncUp(table, value) {
   if(!_userId || !_token) return;
   lsave(`fv3_${table}`, value);
+  markDirty(table);
   try {
-    const delRes = await api(`${table}?user_id=eq.${_userId}`, { method: 'DELETE' });
-    const insRes = await api(table, {
+    // Upsert (atomic): no more DELETE + INSERT
+    await api(`${table}?on_conflict=user_id`, {
       method: 'POST',
-      headers: { 'Prefer': 'return=minimal' },
+      headers: { 'Prefer': 'return=minimal,resolution=merge-duplicates' },
       body: JSON.stringify({ user_id: _userId, data: value })
     });
+    markClean(table);
   } catch(err) { console.warn('syncUp error', err); }
 }
 
 // Wrap save so it always syncs
 function save(k, v) {
   lsave(k, v);
-  const map = { fv3_tasks:'tasks', fv3_habits:'habits', fv3_diary:'diary', fv3_energy:'energy', fv3_challenges:'challenges' };
-  if(map[k]) syncUp(map[k], v);
+  if(TABLE_MAP[k]) syncUp(TABLE_MAP[k], v);
 }
 
 // ===== AUTH UI =====
