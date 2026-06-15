@@ -1855,11 +1855,8 @@ function renderTasks() {
     return (todOrder[a.tod||'']) - (todOrder[b.tod||'']);
   });
 
-  const active = list;
-  const done   = [];
-
   const el = document.getElementById('todoList');
-  if(!active.length) {
+  if(!list.length) {
     el.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Нет задач в этом разделе</div></div>`;
     return;
   }
@@ -1867,7 +1864,6 @@ function renderTasks() {
   const todLabel = {'am':'🌅 Первая пол.', 'pm':'🌆 Вторая пол.'};
 
   function taskHtml(t) {
-    const isOverdue = t.date && t.date < TODAY_STR;
     const postponeBtn = t.date ? `<button class="btn-sm" onclick="postponeTask('${t.id}')">📅 На завтра</button>` : '';
     return `
     <div class="card priority-${t.priority||'mid'}">
@@ -1892,7 +1888,35 @@ function renderTasks() {
     </div>`;
   }
 
-  el.innerHTML = active.map(taskHtml).join('');
+  function groupDivider(label) {
+    return `<div class="done-divider">${label}</div>`;
+  }
+
+  // For non-'all' filters — flat list
+  if(curFilter !== 'all') {
+    el.innerHTML = list.map(taskHtml).join('');
+    return;
+  }
+
+  // 'all' — grouped sections
+  const tomorrow = (() => { const d=new Date(TODAY); d.setDate(d.getDate()+1); return toLocalStr(d); })();
+  const weekEnd  = (() => { const d=new Date(TODAY); d.setDate(d.getDate()+7); return toLocalStr(d); })();
+
+  const groups = [
+    { key:'overdue',  label:'⚠️ Просроченные',  items: list.filter(t => t.date && t.date < TODAY_STR) },
+    { key:'today',    label:'📅 Сегодня',        items: list.filter(t => t.date === TODAY_STR) },
+    { key:'tomorrow', label:'☀️ Завтра',          items: list.filter(t => t.date === tomorrow) },
+    { key:'week',     label:'📆 На этой неделе', items: list.filter(t => t.date && t.date > tomorrow && t.date <= weekEnd) },
+    { key:'later',    label:'🗓 Позже',           items: list.filter(t => t.date && t.date > weekEnd) },
+    { key:'nodate',   label:'📋 Без даты',        items: list.filter(t => !t.date) },
+  ];
+
+  const html = groups
+    .filter(g => g.items.length)
+    .map(g => groupDivider(g.label) + g.items.map(taskHtml).join(''))
+    .join('');
+
+  el.innerHTML = html || `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Нет задач</div></div>`;
 }
 
 // ===== HABITS =====
