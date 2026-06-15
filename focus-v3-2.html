@@ -1111,11 +1111,41 @@ body {
         style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:white;font-size:18px;cursor:pointer;flex-shrink:0">↑</button>
     </div>
 
-    <!-- Save button (appears at end) -->
-    <button id="aiCheckinSaveBtn" onclick="saveAiCheckin()"
-      style="display:none;width:100%;padding:14px;border-radius:var(--r2);background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:white;font-family:var(--head);font-size:13px;font-weight:600;cursor:pointer;margin-top:10px">
-      Сохранить день ✓
-    </button>
+    <!-- Preview & edit before save (appears at end) -->
+    <div id="aiCheckinPreview" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Итог дня — проверь и отредактируй</div>
+
+      <!-- Score -->
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600">ОЦЕНКА ДНЯ</div>
+        <div id="previewScoreRow" style="display:flex;gap:5px">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
+      <!-- Main event -->
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">📌 ГЛАВНОЕ</div>
+        <textarea id="previewMain" class="checkin-input" rows="2" placeholder="Главное событие дня..." style="min-height:48px;font-size:13px"></textarea>
+      </div>
+
+      <!-- Miss -->
+      <div style="margin-bottom:8px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">⏳ НЕ УСПЕЛ</div>
+        <textarea id="previewMiss" class="checkin-input" rows="2" placeholder="Что не успел..." style="min-height:48px;font-size:13px"></textarea>
+      </div>
+
+      <!-- Grateful -->
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:600">🙏 БЛАГОДАРНОСТЬ</div>
+        <textarea id="previewGrateful" class="checkin-input" rows="2" placeholder="За что благодарен..." style="min-height:48px;font-size:13px"></textarea>
+      </div>
+
+      <button onclick="saveAiCheckin()"
+        style="width:100%;padding:14px;border-radius:var(--r2);background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:white;font-family:var(--head);font-size:13px;font-weight:600;cursor:pointer">
+        Сохранить день ✓
+      </button>
+    </div>
   </div>
 </div>
 
@@ -2431,7 +2461,7 @@ async function callClaude(systemPrompt, messages) {
       } catch(e) {}
       const cleanReply = reply.replace(/<save>.*?<\/save>/s, '').trim();
       if(cleanReply) addAiMessage('assistant', cleanReply);
-      document.getElementById('aiCheckinSaveBtn').style.display = 'block';
+      showCheckinPreview(aiCheckinData);
       document.getElementById('aiCheckinInput').disabled = true;
       document.getElementById('aiCheckinSendBtn').disabled = true;
     } else {
@@ -2464,14 +2494,47 @@ async function sendCheckinMessage() {
   await callClaude(systemPrompt, aiCheckinMessages.filter(m=>m.role!=='user'||m.content!=='__start__'));
 }
 
+function showCheckinPreview(data) {
+  // Score buttons 1–10
+  const score = data.score || 5;
+  const scoreRow = document.getElementById('previewScoreRow');
+  scoreRow.innerHTML = Array.from({length:10}, (_,i) => {
+    const v = i+1;
+    const active = v === score;
+    return `<div onclick="selectPreviewScore(this,${v})"
+      style="flex:1;aspect-ratio:1;border-radius:8px;border:1.5px solid ${active?'var(--accent)':'var(--border)'};
+      background:${active?'var(--accent)':'var(--bg3)'};color:${active?'white':'var(--muted)'};
+      display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s"
+      data-score="${v}">${v}</div>`;
+  }).join('');
+
+  document.getElementById('previewMain').value    = data.main    || '';
+  document.getElementById('previewMiss').value    = data.miss    || '';
+  document.getElementById('previewGrateful').value = data.grateful || '';
+
+  document.getElementById('aiCheckinPreview').style.display = 'block';
+  document.getElementById('aiCheckinPreview').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function selectPreviewScore(el, val) {
+  document.querySelectorAll('#previewScoreRow > div').forEach(d => {
+    const active = +d.dataset.score === val;
+    d.style.background = active ? 'var(--accent)' : 'var(--bg3)';
+    d.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+    d.style.color = active ? 'white' : 'var(--muted)';
+  });
+}
+
 function saveAiCheckin() {
   const checkinDate = getCheckinDate();
+  const activeScore = document.querySelector('#previewScoreRow > div[style*="var(--accent)"]');
+  const score = activeScore ? +activeScore.dataset.score : (aiCheckinData.score || 5);
   const entry = {
     date: checkinDate,
-    score: aiCheckinData.score || 5,
-    main: aiCheckinData.main || '',
-    miss: aiCheckinData.miss || '',
-    grateful: aiCheckinData.grateful || '',
+    score,
+    main:     document.getElementById('previewMain').value.trim()     || aiCheckinData.main     || '',
+    miss:     document.getElementById('previewMiss').value.trim()     || aiCheckinData.miss     || '',
+    grateful: document.getElementById('previewGrateful').value.trim() || aiCheckinData.grateful || '',
     energy: energy[checkinDate] || null
   };
   diary = diary.filter(d=>d.date!==checkinDate);
