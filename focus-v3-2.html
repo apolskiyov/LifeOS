@@ -58,64 +58,78 @@ body {
 
 /* HEADER */
 .header {
-  padding: 18px 20px 0;
+  padding: 14px 20px 12px;
   position: sticky;
   top: 0;
   z-index: 100;
   background: var(--bg);
+  border-bottom: 1px solid var(--border);
 }
 .header-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
 }
 .logo {
   font-family: var(--head);
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 700;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
 }
 .date-badge {
   font-size: 12px;
   color: var(--muted);
-  background: var(--bg3);
-  padding: 6px 12px;
-  border-radius: 20px;
   font-weight: 500;
 }
+
+/* BOTTOM NAV */
 .nav {
-  display: grid;
-  grid-template-columns: repeat(3,1fr);
-  gap: 6px;
+  position: fixed;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 720px;
+  display: flex;
   background: var(--bg2);
-  border-radius: var(--r);
-  padding: 5px;
-  margin-bottom: 4px;
+  border-top: 1px solid var(--border);
+  z-index: 100;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
 }
 .nav-btn {
+  flex: 1;
   border: none;
   background: none;
   color: var(--muted);
   font-family: var(--font);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
-  padding: 10px 6px;
-  border-radius: var(--r2);
+  padding: 6px 4px;
   cursor: pointer;
-  transition: all .2s;
+  transition: color .15s;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  position: relative;
 }
-.nav-btn .icon { font-size: 18px; }
-.nav-btn.active { background: var(--card); color: var(--text); box-shadow: 0 2px 12px rgba(124,110,247,.2); }
+.nav-btn .icon { font-size: 22px; line-height: 1; }
+.nav-btn.active { color: var(--accent); }
+.nav-btn.active .icon { filter: drop-shadow(0 0 6px rgba(124,110,247,.6)); }
+.nav-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -6px; left: 50%;
+  transform: translateX(-50%);
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+}
 
 /* CONTENT */
-.content { flex:1; padding: 16px 20px 100px; overflow-y: auto; }
+.content { flex:1; padding: 16px 20px 90px; overflow-y: auto; }
 .view { display:none; }
 .view.active { display:block; }
 
@@ -812,29 +826,30 @@ body {
 <div class="header">
   <div class="header-top">
     <div class="logo">LifeOS</div>
-    <div style="display:flex;align-items:center;gap:8px">
+    <div style="display:flex;align-items:center;gap:10px">
       <div class="date-badge" id="dateBadge"></div>
-      <button onclick="doLogout()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px;line-height:1" title="Выйти">⏏</button>
+      <button onclick="doLogout()" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px;line-height:1;opacity:.6" title="Выйти">⏏</button>
     </div>
   </div>
-  <nav class="nav" style="grid-template-columns:repeat(5,1fr)">
-    <button class="nav-btn active" onclick="showView('todo',this)">
-      <span class="icon">✅</span>Задачи
-    </button>
-    <button class="nav-btn" onclick="showView('habits',this)">
-      <span class="icon">🔥</span>Привычки
-    </button>
-    <button class="nav-btn" onclick="showView('challenges',this)">
-      <span class="icon">🎯</span>Челленджи
-    </button>
-    <button class="nav-btn" onclick="showView('diary',this)">
-      <span class="icon">📓</span>Дневник
-    </button>
-    <button class="nav-btn" onclick="showView('stats',this)">
-      <span class="icon">📊</span>Стат
-    </button>
-  </nav>
 </div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showView('todo',this)">
+    <span class="icon">✅</span>Задачи
+  </button>
+  <button class="nav-btn" onclick="showView('habits',this)">
+    <span class="icon">🔥</span>Привычки
+  </button>
+  <button class="nav-btn" onclick="showView('challenges',this)">
+    <span class="icon">🎯</span>Цели
+  </button>
+  <button class="nav-btn" onclick="showView('diary',this)">
+    <span class="icon">📓</span>Дневник
+  </button>
+  <button class="nav-btn" onclick="showView('stats',this)">
+    <span class="icon">📊</span>Стат
+  </button>
+</nav>
 
 <!-- ENERGY BAR -->
 <div class="energy-bar" id="energyBar">
